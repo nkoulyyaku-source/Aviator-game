@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Aviator Premium Custom</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+font-family:Arial,sans-serif;
+min-height:100vh;
+background:#05070d;
+color:#fff;
+overflow:hidden;
+}
+.bg{
+position:fixed;inset:0;
+background:url('a_wide_detailed_screenshot_like_gaming_ui_casin.png') center/cover no-repeat;
+filter:brightness(.45) blur(1px);
+transform:scale(1.04);
+animation:zoom 12s ease-in-out infinite alternate;
+}
+.overlay{position:fixed;inset:0;background:radial-gradient(circle at center,transparent,rgba(0,0,0,.65));}
+.wrap{position:relative;z-index:2;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px}
+.panel{
+width:min(700px,100%);
+background:rgba(10,15,28,.72);
+border:1px solid rgba(255,255,255,.08);
+backdrop-filter:blur(10px);
+border-radius:24px;
+padding:28px;
+text-align:center;
+box-shadow:0 0 40px rgba(255,0,80,.2);
+}
+h1{font-size:42px;color:#ff375f;letter-spacing:3px}
+.mult{font-size:76px;font-weight:900;color:#00ff9d;text-shadow:0 0 30px #00ff9d;margin:20px 0}
+.btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+button{border:none;padding:16px 28px;border-radius:14px;font-weight:800;font-size:18px;cursor:pointer}
+.bet{background:linear-gradient(135deg,#00c46a,#00ff9d)}
+.cash{background:linear-gradient(135deg,#ff9f00,#ffd166)}
+small{opacity:.8}
+@keyframes zoom{from{transform:scale(1.02)}to{transform:scale(1.08)}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="overlay"></div>
+<div class="wrap">
+<div class="panel">
+<h1>✈ AVIATOR PREMIUM</h1>
+<div class="mult" id="m">1.00x</div>
+<div class="btns">
+<button class="bet" onclick="start()">PARIER</button>
+<button class="cash" onclick="cash()">CASHOUT</button>
+</div>
+<p style="margin-top:18px"><small>Background personnalisé avec ta photo.</small></p>
+</div>
+</div>
+<script>
+let run=false,m=1,t;
+function start(){
+ if(run)return;
+ run=true;m=1;
+ tick();
+}
+function tick(){
+ if(!run)return;
+ m += 0.03 + m*0.002;
+ document.getElementById('m').textContent=m.toFixed(2)+'x';
+ if(Math.random()<0.012*m){run=false;document.getElementById('m').textContent='CRASH '+m.toFixed(2)+'x';return;}
+ t=requestAnimationFrame(tick);
+}
+function cash(){
+ if(!run)return;
+ run=false;
+ document.getElementById('m').textContent='ENCASHÉ '+m.toFixed(2)+'x';
+}
+</script>
+</body>
+</html>
