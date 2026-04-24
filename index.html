@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AVIATOR — Multijoueur</title>
+<title>KπTEN_MONEY_FLY — Multijoueur</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
@@ -26,7 +26,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 
 body {
-  background: var(--dark);
+  background: url('bg.jpg') center/cover no-repeat fixed;
   font-family: 'Rajdhani', sans-serif;
   color: var(--text);
   min-height: 100vh;
@@ -48,7 +48,8 @@ body::before {
     radial-gradient(1px 1px at 88% 60%, rgba(255,255,255,0.5) 0%,transparent 100%),
     radial-gradient(1px 1px at 95% 10%, rgba(255,255,255,0.3) 0%,transparent 100%),
     radial-gradient(2px 2px at 15% 50%, rgba(255,255,255,0.15) 0%,transparent 100%);
-  pointer-events:none; z-index:0;
+  pointer-events:none; z-index:0; 
+background-color: rgba(6,9,15,0.55);
 }
 
 /* ── HEADER ── */
