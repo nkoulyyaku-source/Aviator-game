@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KπTEN MONEY FLY</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+:root {
+  --red: #ff2244;
+  --green: #00ff88;
+  --gold: #ffd700;
+  --orange: #ff8800;
+  --dark: #06090f;
+  --panel: #0c1422;
+  --panel2: #101c30;
+  --border: #182840;
+  --text: #b8cce0;
+  --glow-g: 0 0 24px rgba(0,255,136,0.5);
+  --glow-r: 0 0 24px rgba(255,34,68,0.5);
+  --glow-o: 0 0 24px rgba(255,136,0,0.6);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: url('bg.jpg') center/cover no-repeat fixed;
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Overlay sombre sur le background */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background: rgba(6,9,15,0.72);
+  pointer-events:none; z-index:0;
+}
+
+/* Animated starfield */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(1px 1px at 8% 15%, rgba(255,255,255,0.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 22% 70%, rgba(255,255,255,0.3) 0%,transparent 100%),
+    radial-gradient(2px 2px at 38% 25%, rgba(255,255,255,0.2) 0%,transparent 100%),
+    radial-gradient(1px 1px at 55% 85%, rgba(255,255,255,0.4) 0%,transparent 100%),
+    radial-gradient(1px 1px at 72% 40%, rgba(255,255,255,0.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 60%, rgba(255,255,255,0.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 95% 10%, rgba(255,255,255,0.3) 0%,transparent 100%),
+    radial-gradient(2px 2px at 15% 50%, rgba(255,255,255,0.15) 0%,transparent 100%);
+  pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  width:100%; padding:14px 20px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  background:rgba(12,20,34,0.95); backdrop-filter:blur(12px);
+  position:sticky; top:0; z-index:100;
+}
+
+.logo {
+  font-family:'Orbitron',monospace; font-weight:900; font-size:20px;
+  letter-spacing:4px; color:var(--red);
+  text-shadow:0 0 20px rgba(255,34,68,0.8);
+  display:flex; align-items:center; gap:10px;
+}
+.logo-plane { animation:float 2.5s ease-in-out infinite; display:inline-block; }
+@keyframes float {
+  0%,100%{transform:translateY(0) rotate(-8deg);}
+  50%{transform:translateY(-6px) rotate(-3deg);}
+}
+
+.header-right { display:flex; gap:12px; align-items:center; }
+
+.country-badge {
+  background:var(--panel2); border:1px solid var(--border);
+  padding:7px 14px; border-radius:8px;
+  font-family:'Orbitron',monospace; font-size:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.country-flag { font-size:18px; }
+
+.balance-badge {
+  background:var(--panel2); border:1px solid var(--border);
+  padding:7px 16px; border-radius:8px;
+  font-family:'Orbitron',monospace; font-size:13px;
+  color:var(--gold); text-shadow:0 0 10px rgba(255,215,0,0.5);
+}
+
+/* ── MAIN LAYOUT ── */
+.main {
+  width:100%; max-width:960px;
+  padding:16px; display:flex; flex-direction:column; gap:14px;
+  position:relative; z-index:1;
+}
+
+/* ── HISTORY BAR ── */
+.history-bar {
+  display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+}
+.hist-badge {
+  padding:3px 11px; border-radius:20px;
+  font-family:'Orbitron',monospace; font-size:10px; font-weight:700;
+  border:1px solid; animation:popIn 0.3s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes popIn{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.h-low{color:var(--red);border-color:rgba(255,34,68,0.4);background:rgba(255,34,68,0.1);}
+.h-mid{color:var(--gold);border-color:rgba(255,215,0,0.4);background:rgba(255,215,0,0.1);}
+.h-high{color:var(--green);border-color:rgba(0,255,136,0.4);background:rgba(0,255,136,0.1);}
+
+/* ── GAME ZONE ── */
+.game-zone {
+  background:linear-gradient(180deg,#040710 0%,#08111e 100%);
+  border:1px solid var(--border); border-radius:16px;
+  position:relative; overflow:hidden; height:300px;
+}
+canvas { width:100%; height:100%; display:block; }
+
+.mult-overlay {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center; pointer-events:none;
+}
+.mult-value {
+  font-family:'Orbitron',monospace; font-size:68px; font-weight:900;
+  line-height:1; text-shadow:0 0 40px currentColor;
+  transition:color 0.2s;
+}
+.mult-sub {
+  font-size:12px; letter-spacing:4px; opacity:0.6; margin-top:4px;
+}
+
+.state-waiting .mult-value { color:#334; font-size:22px; }
+.state-flying  .mult-value { color:var(--green); }
+.state-crashed .mult-value { color:var(--red); }
+
+.players-online {
+  position:absolute; top:14px; right:14px;
+  background:rgba(0,0,0,0.5); border:1px solid var(--border);
+  border-radius:20px; padding:4px 12px;
+  font-size:12px; letter-spacing:2px;
+  display:flex; align-items:center; gap:6px;
+}
+.dot-live { width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:var(--glow-g); animation:blink 1s infinite; }
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* ── CONTROLS ── */
+.controls { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+.panel {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:12px; padding:18px;
+  display:flex; flex-direction:column; gap:13px;
+}
+.panel-title {
+  font-family:'Orbitron',monospace; font-size:10px;
+  letter-spacing:3px; color:#445; text-transform:uppercase;
+}
+
+label { font-size:13px; color:#667; letter-spacing:1px; }
+
+input[type=number] {
+  background:rgba(0,0,0,0.5); border:1px solid var(--border);
+  border-radius:8px; color:white;
+  font-family:'Orbitron',monospace; font-size:15px;
+  padding:10px 14px; width:100%; outline:none;
+  transition:border-color 0.2s;
+}
+input[type=number]:focus { border-color:rgba(255,215,0,0.4); }
+
+.quick-row { display:flex; gap:6px; flex-wrap:wrap; }
+.qbtn {
+  background:rgba(255,255,255,0.04); border:1px solid var(--border);
+  border-radius:6px; color:var(--text);
+  font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600;
+  padding:6px 10px; cursor:pointer; transition:all 0.15s;
+}
+.qbtn:hover { background:rgba(255,255,255,0.09); }
+
+.auto-row { display:flex; align-items:center; gap:10px; }
+.toggle {
+  width:36px;height:20px; background:#111a28;
+  border-radius:10px; position:relative;
+  cursor:pointer; border:1px solid var(--border); transition:background 0.2s;
+  flex-shrink:0;
+}
+.toggle.on { background:var(--green); }
+.toggle::after {
+  content:''; position:absolute;
+  width:14px;height:14px; background:white; border-radius:50%;
+  top:2px;left:2px; transition:left 0.2s;
+}
+.toggle.on::after { left:18px; }
+
+/* ── BUTTONS ── */
+.btn {
+  border:none; border-radius:10px;
+  font-family:'Orbitron',monospace; font-size:13px; font-weight:700;
+  letter-spacing:2px; padding:15px; cursor:pointer;
+  transition:all 0.2s; text-transform:uppercase;
+  position:relative; overflow:hidden;
+}
+.btn::after {
+  content:''; position:absolute;
+  top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+  transition:left 0.4s;
+}
+.btn:hover:not(:disabled)::after { left:100%; }
+.btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+.btn-bet {
+  background:linear-gradient(135deg,#00b85a,var(--green));
+  color:#001a0d; box-shadow:var(--glow-g);
+}
+.btn-bet:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 0 30px rgba(0,255,136,0.7); }
+
+.btn-cashout {
+  background:linear-gradient(135deg,var(--orange),var(--gold));
+  color:#1a0d00;
+  animation:pulseCash 0.7s ease-in-out infinite;
+}
+@keyframes pulseCash{0%,100%{box-shadow:0 0 16px rgba(255,136,0,0.5);}50%{box-shadow:0 0 36px rgba(255,204,0,0.8);}}
+.btn-cashout:hover { transform:scale(1.02); }
+
+.btn-waiting {
+  background:linear-gradient(135deg,#1a2a3a,#223044);
+  color:#445; cursor:not-allowed;
+}
+
+/* ── STATS ── */
+.stat-box {
+  background:rgba(0,0,0,0.3); border:1px solid var(--border);
+  border-radius:8px; padding:10px; text-align:center;
+}
+.stat-label { font-size:10px; letter-spacing:2px; color:#445; margin-bottom:4px; }
+.stat-val { font-family:'Orbitron',monospace; font-size:18px; }
+.profit-pos{color:var(--green);text-shadow:var(--glow-g);}
+.profit-neg{color:var(--red);text-shadow:var(--glow-r);}
+.profit-zero{color:#334;}
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; top:72px; left:50%;
+  transform:translateX(-50%) translateY(-10px);
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:10px; padding:11px 22px;
+  font-family:'Orbitron',monospace; font-size:12px;
+  z-index:999; opacity:0; transition:all 0.3s; pointer-events:none;
+  white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.win{color:var(--green);border-color:rgba(0,255,136,0.4);}
+.toast.lose{color:var(--red);border-color:rgba(255,34,68,0.4);}
+.toast.info{color:var(--gold);border-color:rgba(255,215,0,0.3);}
+
+/* ── CONNECTING SCREEN ── */
+#connectScreen {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(6,9,15,0.96);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:20px;
+}
+.connect-logo {
+  font-family:'Orbitron',monospace; font-size:36px; font-weight:900;
+  color:var(--red); text-shadow:0 0 30px rgba(255,34,68,0.8);
+  letter-spacing:6px;
+}
+.connect-sub { font-size:14px; letter-spacing:3px; color:#445; }
+.spinner {
+  width:40px; height:40px;
+  border:3px solid var(--border);
+  border-top-color:var(--red);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── COUNTRY SELECTION SCREEN ── */
+#countryScreen {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(6,9,15,0.97);
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center; gap:24px;
+  padding:20px;
+}
+.country-title {
+  font-family:'Orbitron',monospace; font-size:28px; font-weight:900;
+  color:var(--red); text-shadow:0 0 30px rgba(255,34,68,0.8);
+  letter-spacing:4px; text-align:center;
+}
+.country-subtitle {
+  font-size:14px; letter-spacing:2px; color:#556; text-align:center;
+}
+.country-search {
+  background:rgba(0,0,0,0.5); border:1px solid var(--border);
+  border-radius:10px; color:white;
+  font-family:'Rajdhani',sans-serif; font-size:16px;
+  padding:12px 18px; width:100%; max-width:400px; outline:none;
+  transition:border-color 0.2s;
+}
+.country-search:focus { border-color:rgba(255,34,68,0.5); }
+.country-search::placeholder { color:#334; }
+.country-list {
+  width:100%; max-width:400px; max-height:320px;
+  overflow-y:auto; display:flex; flex-direction:column; gap:6px;
+  scrollbar-width:thin; scrollbar-color:#182840 transparent;
+}
+.country-list::-webkit-scrollbar { width:4px; }
+.country-list::-webkit-scrollbar-track { background:transparent; }
+.country-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+.country-item {
+  background:rgba(255,255,255,0.03); border:1px solid var(--border);
+  border-radius:10px; padding:12px 18px;
+  display:flex; align-items:center; gap:14px;
+  cursor:pointer; transition:all 0.15s;
+  font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:600;
+}
+.country-item:hover {
+  background:rgba(255,34,68,0.1); border-color:rgba(255,34,68,0.4);
+  transform:translateX(4px);
+}
+.country-item .flag { font-size:24px; }
+.country-item .name { color:var(--text); }
+
+@media(max-width:600px){
+  .controls{grid-template-columns:1fr;}
+  .mult-value{font-size:48px;}
+  .game-zone{height:240px;}
+  .header-right{gap:8px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Connecting overlay -->
+<div id="connectScreen">
+  <div class="connect-logo">✈ KπTEN</div>
+  <div class="spinner"></div>
+  <div class="connect-sub">CHARGEMENT...</div>
+</div>
+
+<!-- Country selection screen -->
+<div id="countryScreen">
+  <div class="country-title">✈ KπTEN MONEY FLY</div>
+  <div class="country-subtitle">CHOISISSEZ VOTRE PAYS POUR JOUER</div>
+  <input class="country-search" id="countrySearch" type="text" placeholder="🔍 Rechercher un pays..." oninput="filterCountries()">
+  <div class="country-list" id="countryList"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="logo"><span class="logo-plane">✈</span> KπTEN</div>
+  <div class="header-right">
+    <div class="country-badge">
+      <span class="country-flag" id="flagEl">🌍</span>
+      <span id="countryNameEl" style="font-size:11px;color:#778;">—</span>
+    </div>
+    <div class="balance-badge">💰 <span id="balanceEl">—</span></div>
+  </div>
+</header>
+
+<div class="main">
+  <!-- History -->
+  <div class="history-bar" id="histBar"></div>
+
+  <!-- Game zone -->
+  <div class="game-zone state-waiting" id="gameZone">
+    <canvas id="cv"></canvas>
+    <div class="mult-overlay">
+      <div class="mult-value" id="multVal">—</div>
+      <div class="mult-sub" id="multSub">CONNEXION...</div>
+    </div>
+    <div class="players-online">
+      <div class="dot-live"></div>
+      <span id="onlineCount">0</span> joueurs
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <!-- Bet panel -->
+    <div class="panel">
+      <div class="panel-title">✦ Mise</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label>Montant (FCFA)</label>
+        <input type="number" id="betInput" value="100" min="10" step="10">
+        <div class="quick-row">
+          <button class="qbtn" onclick="setQ(50)">50</button>
+          <button class="qbtn" onclick="setQ(100)">100</button>
+          <button class="qbtn" onclick="setQ(500)">500</button>
+          <button class="qbtn" onclick="setQ(1000)">1K</button>
+          <button class="qbtn" onclick="dbl()">×2</button>
+          <button class="qbtn" onclick="hlv()">÷2</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label>Auto Cashout</label>
+        <div class="auto-row">
+          <div class="toggle" id="autoTgl" onclick="tglAuto()"></div>
+          <input type="number" id="autoVal" value="2.00" min="1.10" step="0.1" style="max-width:90px;">
+          <span style="font-family:'Orbitron',monospace;font-size:12px;color:#556;">x</span>
+        </div>
+      </div>
+      <button class="btn btn-waiting" id="actionBtn" onclick="doAction()">ATTENTE...</button>
+    </div>
+
+    <!-- Stats panel -->
+    <div class="panel">
+      <div class="panel-title">✦ Session</div>
+      <div class="stat-box">
+        <div class="stat-label">PROFIT NET</div>
+        <div class="stat-val profit-zero" id="profitEl">0.00 FCFA</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="stat-box">
+          <div class="stat-label">TOURS</div>
+          <div class="stat-val" style="color:#556;" id="roundsEl">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">VICTOIRES</div>
+          <div class="stat-val" style="color:var(--green);" id="winsEl">0</div>
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">MEILLEUR CASHOUT</div>
+        <div class="stat-val" style="color:var(--gold);font-size:16px;" id="bestEl">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────
+const SERVER_URL = 'https://aviator-game-production.up.railway.app';
+
+// ─── LISTE DES PAYS ───────────────────────────────────────────
+const COUNTRIES = [
+  { code:'CM', name:'Cameroun', flag:'🇨🇲' },
+  { code:'CI', name:'Côte d\'Ivoire', flag:'🇨🇮' },
+  { code:'SN', name:'Sénégal', flag:'🇸🇳' },
+  { code:'ML', name:'Mali', flag:'🇲🇱' },
+  { code:'BF', name:'Burkina Faso', flag:'🇧🇫' },
+  { code:'BJ', name:'Bénin', flag:'🇧🇯' },
+  { code:'TG', name:'Togo', flag:'🇹🇬' },
+  { code:'GN', name:'Guinée', flag:'🇬🇳' },
+  { code:'GA', name:'Gabon', flag:'🇬🇦' },
+  { code:'CG', name:'Congo', flag:'🇨🇬' },
+  { code:'CD', name:'RD Congo', flag:'🇨🇩' },
+  { code:'MG', name:'Madagascar', flag:'🇲🇬' },
+  { code:'NE', name:'Niger', flag:'🇳🇪' },
+  { code:'TD', name:'Tchad', flag:'🇹🇩' },
+  { code:'GH', name:'Ghana', flag:'🇬🇭' },
+  { code:'NG', name:'Nigeria', flag:'🇳🇬' },
+  { code:'MA', name:'Maroc', flag:'🇲🇦' },
+  { code:'DZ', name:'Algérie', flag:'🇩🇿' },
+  { code:'TN', name:'Tunisie', flag:'🇹🇳' },
+  { code:'FR', name:'France', flag:'🇫🇷' },
+  { code:'BE', name:'Belgique', flag:'🇧🇪' },
+  { code:'CA', name:'Canada', flag:'🇨🇦' },
+  { code:'CH', name:'Suisse', flag:'🇨🇭' },
+  { code:'GB', name:'Royaume-Uni', flag:'🇬🇧' },
+  { code:'DE', name:'Allemagne', flag:'🇩🇪' },
+  { code:'US', name:'États-Unis', flag:'🇺🇸' },
+  { code:'BR', name:'Brésil', flag:'🇧🇷' },
+  { code:'OTHER', name:'Autre pays', flag:'🌍' },
+];
+
+let filteredCountries = [...COUNTRIES];
+
+function renderCountryList(list) {
+  const el = document.getElementById('countryList');
+  el.innerHTML = list.map(c => `
+    <div class="country-item" onclick="selectCountry('${c.code}','${c.name}','${c.flag}')">
+      <span class="flag">${c.flag}</span>
+      <span class="name">${c.name}</span>
+    </div>
+  `).join('');
+}
+
+function filterCountries() {
+  const q = document.getElementById('countrySearch').value.toLowerCase();
+  filteredCountries = COUNTRIES.filter(c => c.name.toLowerCase().includes(q));
+  renderCountryList(filteredCountries);
+}
+
+function selectCountry(code, name, flag) {
+  // Mémoriser le choix
+  localStorage.setItem('playerCountry', JSON.stringify({ code, name, flag }));
+  document.getElementById('countryScreen').style.display = 'none';
+  document.getElementById('connectScreen').style.display = 'flex';
+  connect(code, name, flag);
+}
+
+// ─── STATE ────────────────────────────────────────────────────
+let socket;
+let gameState = 'waiting';
+let currentMult = 1.0;
+let myBalance = 1000;
+let myBet = 0;
+let hasBet = false;
+let cashedOut = false;
+let netProfit = 0;
+let rounds = 0;
+let wins = 0;
+let bestCashout = 0;
+let autoEnabled = false;
+let autoAt = 2.0;
+let points = [];
+
+// ─── CANVAS ───────────────────────────────────────────────────
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+function resize() { cv.width = cv.offsetWidth; cv.height = cv.offsetHeight; }
+resize();
+window.addEventListener('resize', () => { resize(); draw(); });
+
+function draw(crashed = false) {
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = 'rgba(24,40,64,0.5)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 80) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+
+  if (points.length < 2) return;
+
+  const color = crashed ? '#ff2244' : '#00ff88';
+  const colorA = crashed ? 'rgba(255,34,68,' : 'rgba(0,255,136,';
+
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, colorA + '0.25)');
+  grad.addColorStop(1, colorA + '0.0)');
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, h - 30);
+  for (const p of points) ctx.lineTo(p.x, p.y);
+  ctx.lineTo(points[points.length-1].x, h - 30);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (const p of points) ctx.lineTo(p.x, p.y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 14;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const last = points[points.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.font = '18px serif';
+  ctx.fillText(crashed ? '💥' : '✈', last.x - 9, last.y - 12);
+}
+
+// ─── UI HELPERS ───────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.className = 'toast', 2800);
+}
+
+function updateBalance() {
+  document.getElementById('balanceEl').textContent =
+    myBalance.toLocaleString('fr-FR', {minimumFractionDigits:2}) + ' FCFA';
+}
+
+function updateProfit() {
+  const el = document.getElementById('profitEl');
+  el.textContent = (netProfit >= 0 ? '+' : '') + netProfit.toFixed(2) + ' FCFA';
+  el.className = 'stat-val ' + (netProfit > 0 ? 'profit-pos' : netProfit < 0 ? 'profit-neg' : 'profit-zero');
+}
+
+function updateStats() {
+  document.getElementById('roundsEl').textContent = rounds;
+  document.getElementById('winsEl').textContent = wins;
+  document.getElementById('bestEl').textContent = bestCashout > 0 ? bestCashout.toFixed(2) + 'x' : '—';
+}
+
+function setMult(text, sub, stateClass) {
+  document.getElementById('multVal').textContent = text;
+  document.getElementById('multSub').textContent = sub;
+  document.getElementById('gameZone').className = 'game-zone ' + stateClass;
+}
+
+function renderHistory(arr) {
+  document.getElementById('histBar').innerHTML = arr.map(m => {
+    const cls = m < 1.5 ? 'h-low' : m < 3 ? 'h-mid' : 'h-high';
+    return `<div class="hist-badge ${cls}">${m.toFixed(2)}x</div>`;
+  }).join('');
+}
+
+function setBtn(mode) {
+  const btn = document.getElementById('actionBtn');
+  btn.className = 'btn';
+  btn.disabled = false;
+  if (mode === 'bet') {
+    btn.classList.add('btn-bet');
+    btn.textContent = 'PARIER';
+  } else if (mode === 'pending') {
+    btn.classList.add('btn-waiting');
+    btn.textContent = '✓ MISE PLACÉE';
+    btn.disabled = true;
+  } else if (mode === 'cashout') {
+    btn.classList.add('btn-cashout');
+    btn.textContent = 'ENCAISSER 💸';
+  } else {
+    btn.classList.add('btn-waiting');
+    btn.textContent = 'EN COURS...';
+    btn.disabled = true;
+  }
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────
+function doAction() {
+  if (gameState === 'waiting' && !hasBet) {
+    const amount = parseFloat(document.getElementById('betInput').value);
+    if (isNaN(amount) || amount < 10) { toast('Mise minimum : 10 FCFA', 'lose'); return; }
+    if (amount > myBalance) { toast('Solde insuffisant !', 'lose'); return; }
+    socket.emit('player:bet', { amount });
+  } else if (gameState === 'flying' && hasBet && !cashedOut) {
+    socket.emit('player:cashout');
+  }
+}
+
+function setQ(v) { document.getElementById('betInput').value = v; }
+function dbl() {
+  const v = parseFloat(document.getElementById('betInput').value) * 2;
+  document.getElementById('betInput').value = Math.min(v, myBalance);
+}
+function hlv() {
+  document.getElementById('betInput').value = Math.max(10, Math.floor(parseFloat(document.getElementById('betInput').value) / 2));
+}
+function tglAuto() {
+  autoEnabled = !autoEnabled;
+  document.getElementById('autoTgl').classList.toggle('on', autoEnabled);
+}
+document.getElementById('autoVal').addEventListener('input', e => {
+  autoAt = parseFloat(e.target.value) || 2.0;
+});
+
+// ─── SOCKET EVENTS ────────────────────────────────────────────
+function connect(countryCode, countryName, countryFlagEmoji) {
+  socket = io(SERVER_URL, {
+    transports: ['websocket'],
+    query: { countryCode, countryName, countryFlag: countryFlagEmoji }
+  });
+
+  socket.on('connect', () => {
+    console.log('✅ Connecté au serveur');
+  });
+
+  socket.on('player:init', ({ name, balance, country, roomState }) => {
+    myBalance = balance;
+    document.getElementById('flagEl').textContent = country.flag;
+    document.getElementById('countryNameEl').textContent = country.name;
+    document.getElementById('connectScreen').style.display = 'none';
+    updateBalance();
+    applyRoomState(roomState);
+  });
+
+  socket.on('room:state', applyRoomState);
+
+  socket.on('room:countdown', ({ countdown }) => {
+    setMult('EN ATTENTE', `PROCHAIN VOL DANS ${countdown}s`, 'state-waiting');
+  });
+
+  socket.on('room:flying', () => {
+    gameState = 'flying';
+    points = [];
+    currentMult = 1.0;
+    if (hasBet) setBtn('cashout');
+    else setBtn('idle');
+    setMult('1.00x', '🛫 VOL EN COURS', 'state-flying');
+  });
+
+  socket.on('room:tick', ({ mult }) => {
+    currentMult = mult;
+    setMult(mult.toFixed(2) + 'x', '🛫 VOL EN COURS', 'state-flying');
+
+    const w = cv.width, h = cv.height;
+    const t = Math.min((mult - 1) / 15, 0.93);
+    const px = 30 + t * (w - 60);
+    const py = Math.max(30, h - 30 - (mult - 1) * (h - 60) * 0.14);
+    points.push({ x: px, y: py });
+    draw();
+
+    if (hasBet && !cashedOut && autoEnabled && mult >= autoAt) {
+      socket.emit('player:cashout');
+    }
+  });
+
+  socket.on('room:crashed', ({ crashAt, history }) => {
+    gameState = 'crashed';
+    setMult('CRASH! ' + crashAt.toFixed(2) + 'x', '✈ L\'avion s\'est écrasé', 'state-crashed');
+    draw(true);
+    renderHistory(history);
+    hasBet = false;
+    cashedOut = false;
+    gameState = 'crashed';
+    setTimeout(() => {
+      gameState = 'waiting';
+      points = [];
+      draw();
+      setBtn('bet');
+    }, 2800);
+  });
+
+  socket.on('room:playerCount', ({ count }) => {
+    document.getElementById('onlineCount').textContent = count;
+  });
+
+  socket.on('player:betResult', ({ ok, msg, balance }) => {
+    if (!ok) { toast(msg, 'lose'); return; }
+    const amount = parseFloat(document.getElementById('betInput').value);
+    myBet = amount;
+    myBalance = balance;
+    hasBet = true;
+    updateBalance();
+    setBtn('pending');
+    toast(`✅ Mise de ${myBet} FCFA confirmée`, 'win');
+  });
+
+  socket.on('player:cashoutResult', ({ ok, winAmount, profit, mult, balance }) => {
+    if (!ok) return;
+    cashedOut = true;
+    myBalance = balance;
+    netProfit += profit;
+    wins++;
+    rounds++;
+    if (mult > bestCashout) bestCashout = mult;
+    updateBalance();
+    updateProfit();
+    updateStats();
+    setBtn('idle');
+    toast(`🎉 CASHOUT x${mult.toFixed(2)} → +${winAmount} FCFA`, 'win');
+  });
+
+  socket.on('player:lost', ({ amount, crashAt }) => {
+    netProfit -= amount;
+    rounds++;
+    updateProfit();
+    updateStats();
+    toast(`💥 Crash à ${crashAt.toFixed(2)}x — -${amount} FCFA`, 'lose');
+  });
+
+  socket.on('disconnect', () => {
+    toast('Déconnecté du serveur...', 'lose');
+    document.getElementById('connectScreen').style.display = 'flex';
+  });
+}
+
+function applyRoomState(state) {
+  gameState = state.state;
+  document.getElementById('onlineCount').textContent = state.playerCount;
+  renderHistory(state.history || []);
+
+  if (state.state === 'waiting') {
+    setMult('EN ATTENTE', `PROCHAIN VOL DANS ${state.countdown}s`, 'state-waiting');
+    if (!hasBet) setBtn('bet');
+    else setBtn('pending');
+    points = []; draw();
+  } else if (state.state === 'flying') {
+    currentMult = state.currentMult || 1.0;
+    setMult(currentMult.toFixed(2) + 'x', '🛫 VOL EN COURS', 'state-flying');
+    if (hasBet && !cashedOut) setBtn('cashout');
+    else setBtn('idle');
+  } else if (state.state === 'crashed') {
+    setMult('CRASH! ' + (state.crashAt || '?') + 'x', '💥 Attendez la prochaine session', 'state-crashed');
+    setBtn('idle');
+    hasBet = false;
+    cashedOut = false;
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+// Vérifier si le pays est déjà mémorisé
+const saved = localStorage.getItem('playerCountry');
+if (saved) {
+  const { code, name, flag } = JSON.parse(saved);
+  connect(code, name, flag);
+} else {
+  // Afficher l'écran de sélection de pays
+  document.getElementById('connectScreen').style.display = 'none';
+  const cs = document.getElementById('countryScreen');
+  cs.style.display = 'flex';
+  renderCountryList(COUNTRIES);
+}
+</script>
+</body>
+</html>
